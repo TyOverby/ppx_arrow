@@ -1,2 +1,2 @@
 
-let s = [%arrow (fun excelsior -> i)]
+let s = [%arrow (fun excelsior -> "hello world")]
