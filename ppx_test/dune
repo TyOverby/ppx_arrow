@@ -1,0 +1,26 @@
+(executable
+ (name pp)
+  (modules pp)
+  (libraries ppx_arrow ppxlib))
+
+(rule
+ (targets test.result)
+  (deps test.ml)
+  (action (run ./pp.exe --impl test.ml -o test.result)))
+
+(rule
+ (targets bad.result)
+  (deps bad.ml)
+  (action 
+    (with-accepted-exit-codes 1
+      (with-outputs-to "bad.result" (run ./pp.exe --impl bad.ml)))))
+
+(rule 
+  (alias runtest)
+  (deps test.result test.expected)
+  (action (diff  test.expected test.result)))
+
+(rule 
+  (alias runtest)
+  (deps bad.result bad.expected)
+  (action (diff bad.expected bad.result)))

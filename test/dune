@@ -1,0 +1,6 @@
+(library
+ (name arrow_syntax_testing)
+ (libraries core_kernel async core arrow_syntax)
+ (inline_tests)
+ (preprocess
+  (pps ppx_jane)))
