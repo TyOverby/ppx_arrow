@@ -33,51 +33,24 @@ let rec fetch_lets = function
           , body )
     ; _
     } ->
-    let _ident = ident in
-    let _expr = expr in
-    let _body = body in
-    let _loc = loc in
     let lets, last = fetch_lets body in
     let call_pattern =
       Ast_pattern.(
-        pexp_extension (
-        extension (string "call") (single_expr_payload ( 
-          pexp_apply __ (many (no_label __))
-          ))))
-    in 
-    let _:_ = Ast_pattern.parse call_pattern loc  expr (fun _f _xs -> assert false) in 
-    (match expr with
-    | { pexp_desc =
-          Pexp_extension
-            ( { txt = "call"; loc = _ }
-            , PStr
-                [ { pstr_desc =
-                      Pstr_eval
-                        ( { pexp_desc =
-                              Pexp_apply
-                                ( callee
-                                , [ ( Nolabel
-                                    , { pexp_desc =
-                                          Pexp_ident
-                                            { txt =
-                                                Longident.Lident arg
-                                            ; _
-                                            }
-                                      ; _
-                                      } )
-                                  ] )
-                          ; _
-                          }
-                        , _ )
-                  ; _
-                  }
-                ] )
-      ; _
-      } ->
-      ( M.Statement.Arrow_let { ident; arrow = callee; arg } :: lets
-      , last )
-    | other ->
-      M.Statement.Regular_let { ident; expr = other } :: lets, last)
+        pexp_extension
+          (extension
+             (string "call")
+             (single_expr_payload
+                (pexp_apply __ (no_label (pexp_ident __) ^:: nil))))
+        |> map2 ~f:(fun f arg -> Either.first (f, arg)))
+    in
+    let other_pattern = Ast_pattern.(__ |> map1 ~f:Either.second) in
+    let pat = Ast_pattern.alt call_pattern other_pattern in
+    Ast_pattern.parse pat loc expr (function
+        | Either.First (arrow, arg) ->
+          let arg = Longident.last_exn arg in
+          M.Statement.Arrow_let { ident; arrow; arg } :: lets, last
+        | Either.Second expr ->
+          M.Statement.Regular_let { ident; expr } :: lets, last)
   | { pexp_desc = Pexp_ident _; _ } as expression -> [], expression
   | { pexp_loc = loc; _ } ->
     fail_with_message "This kind of expression" ~loc
