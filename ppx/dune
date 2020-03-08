@@ -1,6 +1,6 @@
 (library
  (name ppx_arrow)
- (libraries core_kernel ppxlib)
+ (libraries core_kernel ppxlib arrow_syntax)
  (inline_tests)
  (kind ppx_rewriter)
  (preprocess

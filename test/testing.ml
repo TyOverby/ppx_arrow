@@ -7,19 +7,25 @@ module T = struct
     include String
     module Id = Unique_id.Int ()
 
-    let fresh () = sprintf "_id_%s" (Id.to_string (Id.create ()))
+    let fresh () = sprintf "_id_%s" (Id.to_string (Id.create ())) 
+    let of_string = Fn.id
   end
 
+  module Pattern = struct 
+    type t = string 
+    let of_ident = Fn.id  
+    let of_tuple xs =  "(" ^ String.concat xs ~sep:", " ^ ")"
+  end
   module Expression = struct
     include String
 
     let build_ident = Fn.id
     let build_tuple xs = "(" ^ String.concat xs ~sep:", " ^ ")"
 
-    let build_function ~idents ~body =
+    let build_function ~pattern ~body =
       sprintf
         "(fun %s -> %s)"
-        (idents |> List.map ~f:build_ident |> build_tuple)
+        pattern
         body
     ;;
 
@@ -27,31 +33,12 @@ module T = struct
       "(" ^ String.concat (fn :: args) ~sep:" " ^ ")"
     ;;
 
-    let build_pure ~idents ~body =
-      sprintf "(pure ~f:%s)" (build_function ~idents ~body)
+    let build_pure ~pattern ~body =
+      sprintf "(pure ~f:%s)" (build_function ~pattern ~body)
     ;;
 
-    let build_id_arrow ident =
-      sprintf "(pure ~f:(fun %s -> %s))" ident ident
-    ;;
-
-    let build_compose ~left ~right ?map () =
-      match map with
-      | Some map ->
-        sprintf "(map (compose %s %s) ~f:(%s)) " left right map
-      | None -> sprintf "%s |> compose ~into:(%s) " left right
-    ;;
-
-    let build_let ~ident ~expr ~cont =
-      sprintf "let %s = %s in %s " ident expr cont
-    ;;
-
-    let build_let_tuples ~idents ~expr ~cont =
-      sprintf
-        "let %s = %s in %s "
-        (idents |> List.map ~f:build_ident |> build_tuple)
-        expr
-        cont
+    let build_let ~pattern ~expr ~cont =
+      sprintf "let %s = %s in %s " pattern expr cont
     ;;
   end
 end

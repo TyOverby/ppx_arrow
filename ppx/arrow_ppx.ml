@@ -1,3 +1,4 @@
+open! Core_kernel
 open Ppxlib
 
 let name = "getenv"
