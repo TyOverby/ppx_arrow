@@ -109,8 +109,8 @@ let%expect_test "some basic arrow" =
                 (pure (fun i ->
                      let x = i + 1 in
                      i, x)))
-             (pure (fun (i, x) ->
-                  let y = x + i in
-                  i, x, y)))
+             (compose
+                (both (pure (fun _x_ -> _x_)) (compose (pure (fun (i, x) -> x)) f))
+                (pure (fun ((i, x), y) -> i, x, y))))
           (pure (fun (i, x, y) -> y)) |}]
 ;;

@@ -38,7 +38,46 @@ let rec fetch_lets = function
     let _body = body in
     let _loc = loc in
     let lets, last = fetch_lets body in
-    M.Statement.Regular_let { ident; expr } :: lets, last
+    let call_pattern =
+      Ast_pattern.(
+        pexp_extension (
+        extension (string "call") (single_expr_payload ( 
+          pexp_apply __ (many (no_label __))
+          ))))
+    in 
+    let _:_ = Ast_pattern.parse call_pattern loc  expr (fun _f _xs -> assert false) in 
+    (match expr with
+    | { pexp_desc =
+          Pexp_extension
+            ( { txt = "call"; loc = _ }
+            , PStr
+                [ { pstr_desc =
+                      Pstr_eval
+                        ( { pexp_desc =
+                              Pexp_apply
+                                ( callee
+                                , [ ( Nolabel
+                                    , { pexp_desc =
+                                          Pexp_ident
+                                            { txt =
+                                                Longident.Lident arg
+                                            ; _
+                                            }
+                                      ; _
+                                      } )
+                                  ] )
+                          ; _
+                          }
+                        , _ )
+                  ; _
+                  }
+                ] )
+      ; _
+      } ->
+      ( M.Statement.Arrow_let { ident; arrow = callee; arg } :: lets
+      , last )
+    | other ->
+      M.Statement.Regular_let { ident; expr = other } :: lets, last)
   | { pexp_desc = Pexp_ident _; _ } as expression -> [], expression
   | { pexp_loc = loc; _ } ->
     fail_with_message "This kind of expression" ~loc

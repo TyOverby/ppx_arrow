@@ -53,7 +53,7 @@ module Processor (S : Ast_intf.S) = struct
 
   let extend with_ =
     let identity_function =
-      let x = Identifier.of_string "x" in
+      let x = Identifier.of_string "_x_" in
       Expression.function_
         ~pattern:(Pattern.of_ident x)
         ~body:(Expression.of_ident x)
@@ -111,7 +111,7 @@ module Processor (S : Ast_intf.S) = struct
           extend_with ~env ~arrow ~in_ident:arg ~out_ident:ident
         in
         let new_env = Environment.add env ident in
-        recurse new_env xs arrow
+        recurse new_env xs (build_compose ~left:acc ~right:arrow)
     in
     let body, env =
       recurse

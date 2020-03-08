@@ -6,9 +6,9 @@ let s =
              (compose (pure (fun a -> a))
                 (pure (fun (a) -> let x = a + 1 in (a, x))))
              (pure (fun (a, x) -> let y = a + x in (a, x, y))))
-          (pure
-             (fun (a, x, y) ->
-                let f = compose (pure (fun a -> a)) (pure (fun (a) -> a)) in
-                (a, f, x, y))))
-       (pure (fun (a, f, x, y) -> let z = (a + x) + y in (a, f, x, y, z))))
-    (pure (fun (a, f, x, y, z) -> z))
+          (compose
+             (both (pure (fun _x_ -> _x_))
+                (compose (pure (fun (a, x, y) -> x)) f))
+             (pure (fun ((a, x, y), w) -> (a, w, x, y)))))
+       (pure (fun (a, w, x, y) -> let z = y + w in (a, w, x, y, z))))
+    (pure (fun (a, w, x, y, z) -> z))
