@@ -9,24 +9,24 @@ module type S = sig
 
     include Comparator.S with type t := t
 
-    val fresh : unit -> t 
+    val fresh : unit -> t
     val of_string : string -> t
-  end 
+  end
 
-  module Pattern : sig 
+  module Pattern : sig
     type t
-    val of_ident : Identifier.t -> t 
-    val of_tuple : Identifier.t list -> t
+
+    val of_ident : Identifier.t -> t
+    val of_tuple : t list -> t
   end
 
   module Expression : sig
     type t
 
-    val build_ident : Identifier.t -> t
-    val build_let : pattern:Pattern.t -> expr:t -> cont:t -> t
-
-    val build_tuple : t list -> t
-    val build_funcall : fn:t -> args:t list -> t
-    val build_pure : pattern:Pattern.t -> body:t -> t
+    val of_ident : Identifier.t -> t
+    val let_ : pattern:Pattern.t -> expr:t -> cont:t -> t
+    val function_ : pattern:Pattern.t -> body:t -> t
+    val tuple : t list -> t
+    val funcall : fn:t -> args:t list -> t
   end
 end [@warning "-32-27-37"]

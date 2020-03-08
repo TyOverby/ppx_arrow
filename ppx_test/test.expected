@@ -1,1 +1,14 @@
-let s = "excelsior"
+let s =
+  compose
+    (compose
+       (compose
+          (compose
+             (compose (pure (fun a -> a))
+                (pure (fun (a) -> let x = a + 1 in (a, x))))
+             (pure (fun (a, x) -> let y = a + x in (a, x, y))))
+          (pure
+             (fun (a, x, y) ->
+                let f = compose (pure (fun a -> a)) (pure (fun (a) -> a)) in
+                (a, f, x, y))))
+       (pure (fun (a, f, x, y) -> let z = (a + x) + y in (a, f, x, y, z))))
+    (pure (fun (a, f, x, y, z) -> z))

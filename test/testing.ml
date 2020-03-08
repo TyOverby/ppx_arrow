@@ -7,37 +7,32 @@ module T = struct
     include String
     module Id = Unique_id.Int ()
 
-    let fresh () = sprintf "_id_%s" (Id.to_string (Id.create ())) 
+    let fresh () = sprintf "_id_%s" (Id.to_string (Id.create ()))
     let of_string = Fn.id
   end
 
-  module Pattern = struct 
-    type t = string 
-    let of_ident = Fn.id  
-    let of_tuple xs =  "(" ^ String.concat xs ~sep:", " ^ ")"
+  module Pattern = struct
+    type t = string
+
+    let of_ident = Fn.id
+    let of_tuple xs = "(" ^ String.concat xs ~sep:", " ^ ")"
   end
+
   module Expression = struct
     include String
 
-    let build_ident = Fn.id
-    let build_tuple xs = "(" ^ String.concat xs ~sep:", " ^ ")"
+    let of_ident = Fn.id
+    let tuple xs = "(" ^ String.concat xs ~sep:", " ^ ")"
 
-    let build_function ~pattern ~body =
-      sprintf
-        "(fun %s -> %s)"
-        pattern
-        body
+    let function_ ~pattern ~body =
+      sprintf "(fun %s -> %s)" pattern body
     ;;
 
-    let build_funcall ~fn ~args =
+    let funcall ~fn ~args =
       "(" ^ String.concat (fn :: args) ~sep:" " ^ ")"
     ;;
 
-    let build_pure ~pattern ~body =
-      sprintf "(pure ~f:%s)" (build_function ~pattern ~body)
-    ;;
-
-    let build_let ~pattern ~expr ~cont =
+    let let_ ~pattern ~expr ~cont =
       sprintf "let %s = %s in %s " pattern expr cont
     ;;
   end
@@ -66,7 +61,7 @@ let%expect_test "identity" =
   in
   [%expect
     {|
-        pure ~f:(fun i -> i) |> compose ~into:(pure ~f:(fun i -> i + 1)) |}]
+        compose (pure (fun i -> i)) (pure (fun i -> i + 1)) |}]
 ;;
 
 let%expect_test "some basic lets" =
@@ -81,16 +76,15 @@ let%expect_test "some basic lets" =
   in
   [%expect
     {|
-        pure ~f:(fun i -> i)
-        |> compose
-             ~into:
-               (pure ~f:(fun i ->
-                    let x = i + 1 in
-                    i, x))
-        |> compose
-             ~into:
-               (pure ~f:(fun (i, x) ->
-                    let y = x + i in
-                    i, x, y))
-        |> compose ~into:(pure ~f:(fun (i, x, y) -> y)) |}]
+        compose
+          (compose
+             (compose
+                (pure (fun i -> i))
+                (pure (fun i ->
+                     let x = i + 1 in
+                     i, x)))
+             (pure (fun (i, x) ->
+                  let y = x + i in
+                  i, x, y)))
+          (pure (fun (i, x, y) -> y)) |}]
 ;;

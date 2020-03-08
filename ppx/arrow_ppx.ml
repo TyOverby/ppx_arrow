@@ -3,6 +3,8 @@ open Ppxlib
 
 let name = "getenv"
 
+module M = Arrow_syntax.Processor (Mediator)
+
 let fail_with_message details ~loc =
   Location.raise_errorf
     ~loc
@@ -36,15 +38,32 @@ let rec fetch_lets = function
     let _body = body in
     let _loc = loc in
     let lets, last = fetch_lets body in
-    (ident, expr) :: lets, last
-  | { pexp_desc = Pexp_ident { txt = ident; loc = _ }; _ } ->
-    [], ident
+    M.Statement.Regular_let { ident; expr } :: lets, last
+  | { pexp_desc = Pexp_ident _; _ } as expression -> [], expression
   | { pexp_loc = loc; _ } ->
     fail_with_message "This kind of expression" ~loc
 ;;
 
+let _live_variables inside =
+  let mapper =
+    object
+      inherit [String.Set.t] Ast_traverse.fold as super
+
+      method! expression e acc =
+        let acc = super#expression e acc in
+        match e.pexp_desc with
+        | Pexp_ident { txt; _ } ->
+          txt
+          |> Longident.flatten_exn
+          |> List.fold ~init:acc ~f:Set.add
+        | _ -> acc
+    end
+  in
+  mapper#expression inside String.Set.empty
+;;
+
 let expand ~loc ~path:_ (initial_input : pattern) (body : expression) =
-  let initial_identifier, loc =
+  let initial_identifier, _loc =
     match initial_input with
     | { ppat_desc = Ppat_var { txt; loc }; _ } -> txt, loc
     | _ ->
@@ -53,9 +72,12 @@ let expand ~loc ~path:_ (initial_input : pattern) (body : expression) =
         "only plain identifier patterns are allowed for the wrapping \
          function for an arrow-expression"
   in
-  let _body = fetch_lets body in
-  [%expr [%e Ast_builder.Default.estring initial_identifier ~loc]]
+  let initial_input = M.Identifier.of_string initial_identifier in
+  let lets, final_expression = fetch_lets body in
+  M.transform ~initial_input ~lets ~final_expression
 ;;
+
+(*[%expr [%e Ast_builder.Default.estring initial_identifier ~loc]] *)
 
 let ext =
   Extension.declare
