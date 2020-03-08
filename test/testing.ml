@@ -88,3 +88,29 @@ let%expect_test "some basic lets" =
                   i, x, y)))
           (pure (fun (i, x, y) -> y)) |}]
 ;;
+
+let%expect_test "some basic arrow" =
+  let%bind () =
+    run_test
+      ~initial_input:"i"
+      ~lets:
+        [ M.Statement.Regular_let { ident = "x"; expr = "i + 1" }
+        ; M.Statement.Arrow_let
+            { ident = "y"; arrow = "f"; arg = "x" }
+        ]
+      ~final_expression:"y"
+  in
+  [%expect
+    {|
+        compose
+          (compose
+             (compose
+                (pure (fun i -> i))
+                (pure (fun i ->
+                     let x = i + 1 in
+                     i, x)))
+             (pure (fun (i, x) ->
+                  let y = x + i in
+                  i, x, y)))
+          (pure (fun (i, x, y) -> y)) |}]
+;;
