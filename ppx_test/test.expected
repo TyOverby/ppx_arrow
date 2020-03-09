@@ -1,3 +1,8 @@
+let k =
+  compose
+    (compose (pure (fun a -> a))
+       (pure (fun (a) -> let x = a + 1 in let y = a + x in (a, x, y))))
+    (pure (fun (a, x, y) -> y))
 let s =
   compose
     (compose
