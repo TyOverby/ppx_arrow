@@ -76,8 +76,10 @@ let%expect_test "some basic lets" =
     run_test
       ~initial_input:"i"
       ~lets:
-        [ M.Statement.Regular_let { ident = "x"; expr = "i + 1" }
-        ; M.Statement.Regular_let { ident = "y"; expr = "x + i" }
+        [ M.Statement.Regular_let
+            [ { M.Statement.ident = "x"; expr = "i + 1" } ]
+        ; M.Statement.Regular_let
+            [ { M.Statement.ident = "y"; expr = "x + i" } ]
         ]
       ~final_expression:"y"
   in
@@ -85,12 +87,9 @@ let%expect_test "some basic lets" =
     {|
         compose
           (compose
-             (compose
-                (pure (fun i -> i))
-                (pure (fun i ->
-                     let x = i + 1 in
-                     i, x)))
-             (pure (fun (i, x) ->
+             (pure (fun i -> i))
+             (pure (fun i ->
+                  let x = i + 1 in
                   let y = x + i in
                   i, x, y)))
           (pure (fun (i, x, y) -> y)) |}]
@@ -101,7 +100,8 @@ let%expect_test "some basic arrow" =
     run_test
       ~initial_input:"i"
       ~lets:
-        [ M.Statement.Regular_let { ident = "x"; expr = "i + 1" }
+        [ M.Statement.Regular_let
+            [ { M.Statement.ident = "x"; expr = "i + 1" } ]
         ; M.Statement.Arrow_let
             { ident = "y"; arrow = "f"; arg = "x" }
         ]

@@ -33,23 +33,23 @@ end
 module Expression = struct
   type t = expression
 
-let unbound_variables inside =
-  let mapper =
-    object
-      inherit [String.Set.t] Ast_traverse.fold as super
+  let unbound_variables inside =
+    let mapper =
+      object
+        inherit [String.Set.t] Ast_traverse.fold as super
 
-      method! expression e acc =
-        let acc = super#expression e acc in
-        match e.pexp_desc with
-        | Pexp_ident { txt; _ } ->
-          txt
-          |> Longident.flatten_exn
-          |> List.fold ~init:acc ~f:Set.add
-        | _ -> acc
-    end
-  in
-  mapper#expression inside String.Set.empty
-;;
+        method! expression e acc =
+          let acc = super#expression e acc in
+          match e.pexp_desc with
+          | Pexp_ident { txt; _ } ->
+            txt
+            |> Longident.flatten_exn
+            |> List.fold ~init:acc ~f:Set.add
+          | _ -> acc
+      end
+    in
+    mapper#expression inside String.Set.empty
+  ;;
 
   let tuple xs =
     let loc = Location.none in

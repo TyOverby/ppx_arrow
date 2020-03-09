@@ -50,12 +50,13 @@ let rec fetch_lets = function
           let arg = Longident.last_exn arg in
           M.Statement.Arrow_let { ident; arrow; arg } :: lets, last
         | Either.Second expr ->
-          M.Statement.Regular_let { ident; expr } :: lets, last)
+          ( M.Statement.Regular_let [ { M.Statement.ident; expr } ]
+            :: lets
+          , last ))
   | { pexp_desc = Pexp_ident _; _ } as expression -> [], expression
   | { pexp_loc = loc; _ } ->
     fail_with_message "This kind of expression" ~loc
 ;;
-
 
 let expand ~loc ~path:_ (initial_input : pattern) (body : expression) =
   let initial_identifier, _loc =

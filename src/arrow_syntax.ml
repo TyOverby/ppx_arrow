@@ -5,11 +5,13 @@ module Processor (S : Ast_intf.S) = struct
   include S
 
   module Statement = struct
+    type binding =
+      { ident : Identifier.t
+      ; expr : Expression.t
+      }
+
     type t =
-      | Regular_let of
-          { ident : Identifier.t
-          ; expr : Expression.t
-          }
+      | Regular_let of binding list
       | Arrow_let of
           { ident : Identifier.t
           ; arrow : Expression.t
@@ -87,20 +89,38 @@ module Processor (S : Ast_intf.S) = struct
                 |> Environment.to_tuple_expression))
   ;;
 
+  let rec collapse_lets = function
+    | [] -> []
+    | (Statement.Regular_let left as a) :: xs ->
+      (match collapse_lets xs with
+      | Statement.Regular_let right :: ys ->
+        Statement.Regular_let (left @ right) :: ys
+      | other -> a :: other)
+    | a :: xs -> a :: collapse_lets xs
+  ;;
+
   let transform ~initial_input ~lets ~final_expression =
+    let lets = collapse_lets lets in
     let rec recurse env lets acc =
       match lets with
       | [] -> acc, env
-      | Statement.Regular_let { ident; expr } :: xs ->
+      | Statement.Regular_let bindings :: xs ->
         let current_env = env in
-        let new_env = Environment.add env ident in
-        let new_env_tuple = Environment.to_tuple_expression new_env in
-        let body =
-          Expression.let_
-            ~pattern:(Pattern.of_ident ident)
-            ~expr
-            ~cont:new_env_tuple
+        let new_env =
+          bindings
+          |> List.map ~f:(fun { Statement.ident; expr = _ } -> ident)
+          |> List.fold ~init:env ~f:Set.add
         in
+        let new_env_tuple = Environment.to_tuple_expression new_env in
+        let rec build_body = function
+          | [] -> new_env_tuple
+          | { Statement.ident; expr } :: xs ->
+            Expression.let_
+              ~pattern:(Pattern.of_ident ident)
+              ~expr
+              ~cont:(build_body xs)
+        in
+        let body = build_body bindings in
         let arrow =
           let pattern = Environment.to_tuple_pattern current_env in
           pure ~pattern ~body

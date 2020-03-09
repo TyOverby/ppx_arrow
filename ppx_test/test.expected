@@ -2,10 +2,8 @@ let s =
   compose
     (compose
        (compose
-          (compose
-             (compose (pure (fun a -> a))
-                (pure (fun (a) -> let x = a + 1 in (a, x))))
-             (pure (fun (a, x) -> let y = a + x in (a, x, y))))
+          (compose (pure (fun a -> a))
+             (pure (fun (a) -> let x = a + 1 in let y = a + x in (a, x, y))))
           (compose
              (both (pure (fun _x_ -> _x_))
                 (compose (pure (fun (a, x, y) -> x)) f))
