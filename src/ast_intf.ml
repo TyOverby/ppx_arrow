@@ -23,6 +23,10 @@ module type S = sig
   module Expression : sig
     type t
 
+    val unbound_variables
+      :  t
+      -> (Identifier.t, Identifier.comparator_witness) Set.t
+
     val of_ident : Identifier.t -> t
     val let_ : pattern:Pattern.t -> expr:t -> cont:t -> t
     val function_ : pattern:Pattern.t -> body:t -> t

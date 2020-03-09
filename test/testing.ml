@@ -24,6 +24,13 @@ module T = struct
     let of_ident = Fn.id
     let tuple xs = "(" ^ String.concat xs ~sep:", " ^ ")"
 
+    let unbound_variables e =
+      e
+      |> String.split_on_chars ~on:[ ' '; ','; '(' ]
+      |> List.filter ~f:(String.for_all ~f:Char.is_alpha)
+      |> String.Set.of_list
+    ;;
+
     let function_ ~pattern ~body =
       sprintf "(fun %s -> %s)" pattern body
     ;;

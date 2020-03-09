@@ -56,23 +56,6 @@ let rec fetch_lets = function
     fail_with_message "This kind of expression" ~loc
 ;;
 
-let _live_variables inside =
-  let mapper =
-    object
-      inherit [String.Set.t] Ast_traverse.fold as super
-
-      method! expression e acc =
-        let acc = super#expression e acc in
-        match e.pexp_desc with
-        | Pexp_ident { txt; _ } ->
-          txt
-          |> Longident.flatten_exn
-          |> List.fold ~init:acc ~f:Set.add
-        | _ -> acc
-    end
-  in
-  mapper#expression inside String.Set.empty
-;;
 
 let expand ~loc ~path:_ (initial_input : pattern) (body : expression) =
   let initial_identifier, _loc =
