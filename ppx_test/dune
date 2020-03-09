@@ -12,7 +12,7 @@
  (targets bad.result)
   (deps bad.ml)
   (action 
-    (with-accepted-exit-codes 1
+    (with-accepted-exit-codes (or 0 1)
       (with-outputs-to "bad.result" (run ./pp.exe --impl bad.ml)))))
 
 (rule 
