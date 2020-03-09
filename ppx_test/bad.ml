@@ -1,2 +1,2 @@
-let k = [%arrow (fun _ -> i)]
-let s = [%arrow (fun () -> i)]
+let k = [%arrow (fun a b -> i)]
+(*let s = [%arrow (fun () -> i)]*)
