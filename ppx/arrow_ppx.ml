@@ -5,7 +5,7 @@ let name = "getenv"
 
 module M = Arrow_syntax.Processor (Mediator)
 
-let fail_with_message details ~loc =
+let _fail_with_message details ~loc =
   Location.raise_errorf
     ~loc
     "%s %s\n%s"
@@ -16,46 +16,40 @@ let fail_with_message details ~loc =
      construction')"
 ;;
 
-let rec fetch_lets = function
-  | { pexp_desc = Pexp_let (Recursive, _, _); pexp_loc = loc; _ } ->
-    fail_with_message "recursive let" ~loc
-  | { pexp_desc = Pexp_let (_, _ :: _ :: _, _); pexp_loc = loc; _ } ->
-    fail_with_message "let-and" ~loc
-  | { pexp_desc =
-        Pexp_let
-          ( Nonrecursive
-          , [ { pvb_expr = expr
-              ; pvb_pat =
-                  { ppat_desc = Ppat_var { txt = ident; loc }; _ }
-              ; _
-              }
-            ]
-          , body )
-    ; _
-    } ->
-    let lets, last = fetch_lets body in
-    let call_pattern =
-      Ast_pattern.(
-        pexp_extension
-          (extension
-             (string "call")
-             (single_expr_payload
-                (pexp_apply __ (no_label (pexp_ident __) ^:: nil))))
-        |> map2 ~f:(fun f arg -> Either.first (f, arg)))
-    in
-    let other_pattern = Ast_pattern.(__ |> map1 ~f:Either.second) in
-    let pat = Ast_pattern.alt call_pattern other_pattern in
-    Ast_pattern.parse pat loc expr (function
-        | Either.First (arrow, arg) ->
-          let arg = Longident.last_exn arg in
-          M.Statement.Arrow_let { ident; arrow; arg } :: lets, last
-        | Either.Second expr ->
-          ( M.Statement.Regular_let [ { M.Statement.ident; expr } ]
-            :: lets
-          , last ))
-  | { pexp_desc = Pexp_ident _; _ } as expression -> [], expression
-  | { pexp_loc = loc; _ } ->
-    fail_with_message "This kind of expression" ~loc
+let rec fetch_lets ~let_loc expr =
+  let open Ast_pattern in
+  let let_pattern expr_pattern =
+    pexp_let
+      nonrecursive
+      (value_binding ~pat:(ppat_var __) ~expr:expr_pattern ^:: nil)
+      __
+  in
+  let arrow_let =
+    let_pattern
+      (pexp_extension
+         (extension
+            (string "call")
+            (single_expr_payload
+               (pexp_apply __ (no_label (pexp_ident __) ^:: nil)))))
+    |> map2 ~f:(fun ident arrow -> ident, arrow)
+    |> map2 ~f:(fun (ident, arrow) arg -> ident, arrow, arg)
+    |> map2 ~f:(fun (ident, arrow, arg) cont ->
+        let arg = Longident.last_exn arg in
+        let this = M.Statement.Arrow_let {ident; arrow; arg} in
+        let rest, last = fetch_lets ~let_loc:(Location.none) cont in 
+        this::rest, last)
+  in
+  let regular_let =
+    let_pattern __
+    |> map2 ~f:(fun ident expr -> ident, expr)
+    |> map2 ~f:(fun (ident, expr) cont ->
+        let this = M.Statement.Regular_let [{M.Statement.ident; expr}] in 
+        let rest, last = fetch_lets ~let_loc:(Location.none) cont in 
+        this :: rest, last)
+  in
+  let other_expression = 
+    (__ ) |> map1 ~f:(fun expr -> [], expr) in
+  Ast_pattern.parse (arrow_let ||| regular_let ||| other_expression) let_loc expr (fun x -> x)
 ;;
 
 let expand ~loc ~path:_ (initial_input : pattern) (body : expression) =
@@ -69,18 +63,15 @@ let expand ~loc ~path:_ (initial_input : pattern) (body : expression) =
          function for an arrow-expression"
   in
   let initial_input = M.Identifier.of_string initial_identifier in
-  let lets, final_expression = fetch_lets body in
+  let lets, final_expression = fetch_lets ~let_loc:loc body in
   M.transform ~initial_input ~lets ~final_expression
 ;;
-
-(*[%expr [%e Ast_builder.Default.estring initial_identifier ~loc]] *)
 
 let ext =
   Extension.declare
     "arrow"
     Extension.Context.expression
     Ast_pattern.(single_expr_payload (pexp_fun nolabel none __ __))
-    (*Ast_pattern.(single_expr_payload (estring __))*)
     expand
 ;;
 
