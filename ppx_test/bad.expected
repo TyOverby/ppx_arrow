@@ -1,4 +1,4 @@
-[1mFile "bad.ml", line 1, characters 8-29[0m:
+[1mFile "bad.ml", line 1, characters 21-22[0m:
 1 | let k = [%arrow (fun _ -> i)]
-            [1;31m^^^^^^^^^^^^^^^^^^^^^[0m
-[1;31mError[0m: only plain identifier patterns are allowed for the wrapping function for an arrow-expression
+                         [1;31m^[0m
+[1;31mError[0m: var expected
