@@ -50,11 +50,12 @@ let rec fetch_lets ~let_loc expr =
            let let_loc = cont.pexp_loc in
            let rest, last = fetch_lets ~let_loc cont in
            this :: rest, last)
-  in
-  let other_let = let_pattern __' 
-    |> map2 ~f:(fun _ {loc;_} -> loc) 
-    |> map2 ~f:(fun loc _ ->  fail_with_message "xxxxx" ~loc) in
-  let other_expression = __ |> map1 ~f:(fun expr -> [], expr) in
+  in 
+  let other_let = (pexp_let recursive __ __)
+    |> map ~f:(fun _ ->  
+        fail_with_message "xxxxx" ~loc:let_loc) in
+  let other_expression = __ |> map1 ~f:(fun expr -> 
+    [], expr) in
   Ast_pattern.parse
     (arrow_let ||| regular_let ||| other_let ||| other_expression)
     let_loc
