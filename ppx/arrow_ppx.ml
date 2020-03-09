@@ -5,7 +5,7 @@ let name = "getenv"
 
 module M = Arrow_syntax.Processor (Mediator)
 
-let _fail_with_message details ~loc =
+let fail_with_message details ~loc =
   Location.raise_errorf
     ~loc
     "%s %s\n%s"
@@ -51,9 +51,12 @@ let rec fetch_lets ~let_loc expr =
            let rest, last = fetch_lets ~let_loc cont in
            this :: rest, last)
   in
+  let other_let = let_pattern __' 
+    |> map2 ~f:(fun _ {loc;_} -> loc) 
+    |> map2 ~f:(fun loc _ ->  fail_with_message "xxxxx" ~loc) in
   let other_expression = __ |> map1 ~f:(fun expr -> [], expr) in
   Ast_pattern.parse
-    (arrow_let ||| regular_let ||| other_expression)
+    (arrow_let ||| regular_let ||| other_let ||| other_expression)
     let_loc
     expr
     Fn.id
